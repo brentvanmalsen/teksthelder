@@ -3,6 +3,16 @@ charset-normalizer==3.4.0
 click==8.1.7
 gTTS==2.5.3
 idna==3.10
+pynput==1.7.7
+pyobjc-core==10.3.1
+pyobjc-framework-ApplicationServices==10.3.1
+pyobjc-framework-Cocoa==10.3.1
+pyobjc-framework-CoreText==10.3.1
+pyobjc-framework-Quartz==10.3.1
 pyperclip==1.9.0
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.15
+PyQt5_sip==12.15.0
 requests==2.32.3
+six==1.16.0
 urllib3==2.2.3
