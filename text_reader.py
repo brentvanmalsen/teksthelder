@@ -1,44 +1,66 @@
+import sys
 import pyperclip
-from gtts import gTTS
 import os
-import tkinter as tk
-from tkinter import messagebox
+from gtts import gTTS
+from PyQt5 import QtWidgets, QtCore
+from pynput import mouse
 
-# Variabele om de laatste gelezen tekst bij te houden
-last_text = ""
+last_text = ""  # Variabele om de laatste tekst bij te houden
 
-def get_text_from_clipboard():
-    """Haal tekst op uit het klembord."""
-    return pyperclip.paste()
+class TextReaderApp(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        # Instellingen voor het venster
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.Tool)
+        self.setFixedSize(150, 50)
 
-def speak_text():
-    """Zet tekst om in spraak en speel het af als het nieuwe tekst is."""
-    global last_text
-    text = get_text_from_clipboard()
-    
-    if text and text != last_text:  # Controleer of de tekst nieuw is
-        tts = gTTS(text=text, lang='nl')
-        tts.save("speech.mp3")
+        # Knop voor het voorlezen van tekst
+        self.button = QtWidgets.QPushButton("Voorlezen", self)
+        self.button.clicked.connect(self.speak_text)
+        self.button.setGeometry(10, 10, 130, 30)
+
+        # Timer om het klembord regelmatig te controleren
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.check_clipboard)
+        self.timer.start(1000)  # Controleer elke seconde
+
+    def check_clipboard(self):
+        """Controleer het klembord voor nieuwe tekst en toon het menu."""
+        global last_text
+        text = pyperclip.paste()
+
+        if text and text != last_text:
+            last_text = text
+            self.show_menu_at_cursor()
+
+    def show_menu_at_cursor(self):
+        """Plaats het menu naast de cursorpositie en breng het naar de voorgrond."""
+        cursor_position = mouse.Controller().position
+        self.move(int(cursor_position[0]), int(cursor_position[1]) + 20)  # Plaats onder de cursor
+        self.show()  # Toon het menu
+
+        # Breng het venster naar de voorgrond
+        self.raise_()           # Breng het venster naar voren
+        self.activateWindow()    # Focus het venster
+
+    def speak_text(self):
+        """Lees de tekst voor met gTTS en speel het af."""
+        text = pyperclip.paste()
+        if text:
+            # Zet de tekst om naar spraak en sla op als mp3
+            tts = gTTS(text=text, lang='nl')
+            tts.save("speech.mp3")
+
+            # Speel het audiobestand af afhankelijk van het besturingssysteem
+            if os.name == "posix":  # macOS/Linux
+                os.system("afplay speech.mp3")
+            elif os.name == "nt":  # Windows
+                os.system("start speech.mp3")
         
-        # Gebruik het juiste afspeelcommando afhankelijk van je besturingssysteem
-        if os.name == "posix":  # macOS/Linux
-            os.system("afplay speech.mp3")
-        elif os.name == "nt":  # Windows
-            os.system("start speech.mp3")
-        
-        # Update de laatste tekst
-        last_text = text
-        messagebox.showinfo("Voorlezen", "Voorlezen voltooid.")
-    elif text == last_text:
-        messagebox.showinfo("Opmerking", "De geselecteerde tekst is al voorgelezen.")
-    else:
-        messagebox.showwarning("Fout", "Geen tekst gevonden op het klembord.")
+        # Verberg het menu na het voorlezen
+        self.hide()
 
-# GUI setup
-app = tk.Tk()
-app.title("Tekst Voorlezer")
-
-read_button = tk.Button(app, text="Voorlezen", command=speak_text)
-read_button.pack(pady=20)
-
-app.mainloop()
+# Start de PyQt5-applicatie
+app = QtWidgets.QApplication(sys.argv)
+window = TextReaderApp()
+sys.exit(app.exec_())
