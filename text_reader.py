@@ -9,25 +9,27 @@ from pynput import mouse
 last_text = ""  # Variabele om de laatste tekst bij te houden
 
 def simplify_text(text):
-    # API-url voor het BART-model op Hugging Face
-    api_url = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
-    headers = {"Authorization": "Bearer YOUR_HUGGING_FACE_API_KEY"}  # Vervang met je eigen API-sleutel
+    # API-url voor Flan-T5 op Hugging Face
+    api_url = "https://api-inference.huggingface.co/models/google/flan-t5-large"
+    headers = {"Authorization": "Bearer SECRET_KEY"}  # Vervang met je nieuwe API-sleutel
 
+    # Geef de instructie mee aan het model
     data = {
-        "inputs": text,
-        "parameters": {"max_length": 50, "min_length": 25, "do_sample": False},
+        "inputs": f"Explain in simple A1 words what this text means: {text}"
     }
 
     response = requests.post(api_url, headers=headers, json=data)
-    print("Statuscode van de API-response:", response.status_code)  # Print de statuscode voor debugging
-    print("API-response inhoud:", response.json())  # Print de volledige response voor debugging
+    print("Statuscode van de API-response:", response.status_code)  # Debugging
+    print("API-response inhoud:", response.json())  # Debugging
 
     if response.status_code == 200:
         # Pak de vereenvoudigde tekst uit de response
-        simplified_text = response.json()[0].get("summary_text", "Geen uitleg gevonden")
+        simplified_text = response.json()[0]["generated_text"]
         return simplified_text
     else:
-        return "Sorry, de tekst kan momenteel niet worden uitgelegd."
+        # Toon de volledige foutmelding voor debugging
+        error_message = response.json().get("error", "Onbekende fout")
+        return f"Sorry, de tekst kan momenteel niet worden uitgelegd. Foutmelding: {error_message}"
 
 class TextReaderApp(QtWidgets.QWidget):
     def __init__(self):
@@ -72,25 +74,21 @@ class TextReaderApp(QtWidgets.QWidget):
         """Lees de tekst voor met gTTS en speel het af zonder het venster te sluiten."""
         text = pyperclip.paste()
         if text:
-            tts = gTTS(text=text, lang='nl')
+            tts = gTTS(text=text, lang='en')
             tts.save("speech.mp3")
 
             if os.name == "posix":  # macOS/Linux
                 os.system("afplay speech.mp3")
             elif os.name == "nt":  # Windows
                 os.system("start speech.mp3")
-        
-        # self.hide() is verwijderd zodat het venster open blijft
 
     def explain_text(self):
         """Vereenvoudig en toon de tekst zonder het venster te sluiten."""
         text = pyperclip.paste()
-        print("Tekst op het klembord:", text)  # Print de tekst op het klembord naar de terminal
+        print("Tekst op het klembord:", text)  # Debugging: Print de tekst op het klembord
         if text:
             simplified_text = simplify_text(text)
             QtWidgets.QMessageBox.information(self, "Uitleg", simplified_text)
-        
-        # self.hide() is verwijderd zodat het venster open blijft
 
 # Start de PyQt5-applicatie
 app = QtWidgets.QApplication(sys.argv)
